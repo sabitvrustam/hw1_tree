@@ -15,52 +15,51 @@ type entry struct {
 }
 
 const (
-	tSimbol     = "├"
+	tSymbol     = "├"
 	lSimbol     = "└"
-	vertSimbol  = "│"
-	tabSimbol   = "\t"
-	horizSimbol = "─────"
+	vertSymbol  = "│"
+	tabSymbol   = "\t"
+	horizSymbol = "─────"
 )
 
 func main() {
-	entrys := scanDir("testdata", 0)
+	entries := scanDir("testdata", 0)
 	var maxHeight int
-	var simbolDir string
+	var symbolDir string
 
-	for _, entry := range entrys {
+	for _, entry := range entries {
 		if maxHeight < entry.height {
 			maxHeight = entry.height
 		}
 	}
 	lineDiagram := make([]bool, maxHeight+1)
 
-	for _, entry := range entrys {
+	for _, entry := range entries {
 		fileSize := ""
 		stringPattern := ""
 		for i := 0; i < entry.height; i++ {
 			if !lineDiagram[i] {
-				stringPattern += tabSimbol
+				stringPattern += tabSymbol
 			} else if lineDiagram[i] {
-				stringPattern += vertSimbol + tabSimbol
+				stringPattern += vertSymbol + tabSymbol
 			}
 		}
 
-		if !entry.isDir && entry.size != 0 {
-			fileSize = fmt.Sprintf("(%db)", entry.size)
-		} else if !entry.isDir && entry.size == 0 {
+		if !entry.isDir {
 			fileSize = "(empty)"
+			if entry.size != 0 {
+				fileSize = fmt.Sprintf("(%db)", entry.size)
+			}
 		}
+		symbolDir = tSymbol
+		lineDiagram[entry.height] = true
 
 		if entry.number+1 == entry.count {
-			simbolDir = lSimbol
+			symbolDir = lSimbol
 			lineDiagram[entry.height] = false
-
-		} else {
-			simbolDir = tSimbol
-			lineDiagram[entry.height] = true
 		}
 
-		fmt.Println(stringPattern+simbolDir+horizSimbol, entry.name, fileSize)
+		fmt.Println(stringPattern+symbolDir+horizSymbol, entry.name, fileSize)
 	}
 }
 
@@ -70,6 +69,7 @@ func scanDir(firstDir string, height int) (entrys []entry) {
 	files, err := os.ReadDir(firstDir)
 	if err != nil {
 		fmt.Println("Каталога не существует", err)
+		panic(err)
 	}
 
 	for i, file := range files {
