@@ -5,88 +5,88 @@ import (
 	"os"
 )
 
-type Object struct {
-	name         []string
-	fileOrFolder []bool
-	amount       []int
-	nesting      []int
-	size         []int64
-	number       []int
+type entry struct {
+	name   string
+	isDir  bool
+	count  int
+	height int
+	size   int64
+	number int
 }
 
-var object Object
-var simbolDir string
-var maxLevelNesting int
-var stringPattern string
+const (
+	tSimbol     = "├"
+	lSimbol     = "└"
+	vertSimbol  = "│"
+	tabSimbol   = "\t"
+	horizSimbol = "─────"
+)
 
 func main() {
-	scanDir("testdata", 0)
+	entrys := scanDir("testdata", 0)
+	var maxHeight int
+	var simbolDir string
 
-	transitDir := "├"
-	ultimateDir := "└"
-	continuDir := "│"
-	tab := "\t"
-	openDir := "─────"
-
-	for i := range object.nesting {
-		if maxLevelNesting < object.nesting[i] {
-			maxLevelNesting = object.nesting[i]
+	for _, entry := range entrys {
+		if maxHeight < entry.height {
+			maxHeight = entry.height
 		}
 	}
-	lineDiagram := make([]bool, maxLevelNesting+1)
+	lineDiagram := make([]bool, maxHeight+1)
 
-	for i := range object.fileOrFolder {
-		stringPattern = ""
-		for n := 0; n < object.nesting[i]; n++ {
-			if !lineDiagram[n] {
-				stringPattern += tab
-			} else if lineDiagram[n] {
-				stringPattern += continuDir + tab
+	for _, entry := range entrys {
+		fileSize := ""
+		stringPattern := ""
+		for i := 0; i < entry.height; i++ {
+			if !lineDiagram[i] {
+				stringPattern += tabSimbol
+			} else if lineDiagram[i] {
+				stringPattern += vertSimbol + tabSimbol
 			}
 		}
-		var fileSize string
-		if !object.fileOrFolder[i] && object.size[i] != 0 {
-			fileSize = fmt.Sprintf("(%db)", object.size[i])
-		} else if !object.fileOrFolder[i] && object.size[i] == 0 {
+
+		if !entry.isDir && entry.size != 0 {
+			fileSize = fmt.Sprintf("(%db)", entry.size)
+		} else if !entry.isDir && entry.size == 0 {
 			fileSize = "(empty)"
 		}
-		if object.number[i]+1 == object.amount[i] {
-			simbolDir = ultimateDir
-			lineDiagram[object.nesting[i]] = false
+
+		if entry.number+1 == entry.count {
+			simbolDir = lSimbol
+			lineDiagram[entry.height] = false
 
 		} else {
-			simbolDir = transitDir
-			lineDiagram[object.nesting[i]] = true
+			simbolDir = tSimbol
+			lineDiagram[entry.height] = true
 		}
 
-		fmt.Println(stringPattern+simbolDir+openDir, object.name[i], fileSize)
+		fmt.Println(stringPattern+simbolDir+horizSimbol, entry.name, fileSize)
 	}
 }
 
-func scanDir(firstDirectory string, numberDirectory int) {
+func scanDir(firstDir string, height int) (entrys []entry) {
+	var element entry
 
-	files, err := os.ReadDir(firstDirectory)
+	files, err := os.ReadDir(firstDir)
 	if err != nil {
 		fmt.Println("Каталога не существует", err)
 	}
 
-	for i := range files {
-		file := files[i]
-		info, _ := file.Info()
-		object.number = append(object.number, i)
-		object.size = append(object.size, info.Size())
-		object.nesting = append(object.nesting, numberDirectory)
-		object.amount = append(object.amount, len(files))
-		object.name = append(object.name, file.Name())
-		object.fileOrFolder = append(object.fileOrFolder, file.IsDir())
+	for i, file := range files {
+		infoElement, _ := file.Info()
+		element.name = file.Name()
+		element.isDir = file.IsDir()
+		element.count = len(files)
+		element.number = i
+		element.height = height
+		element.size = infoElement.Size()
+
+		entrys = append(entrys, element)
 
 		if file.IsDir() {
-			directory := file.Name()
-
-			scanDir(firstDirectory+"/"+directory, numberDirectory+1)
-
+			entrys = append(entrys, scanDir(firstDir+"/"+element.name, height+1)...)
 		}
 
 	}
-
+	return entrys
 }
